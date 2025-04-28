@@ -8,15 +8,14 @@ import {
     AXIAL_UP,
     AXIAL_UP_LEFT,
     AXIAL_UP_RIGHT,
-    AxialCoord,
     axialToPixel,
     directionToAxial,
     PixelCoord,
 } from "@/lib/hex";
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { produce } from "immer";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { produce } from "immer";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
 
 const VALUE_TO_BACKGROUND_COLOR: Record<number, string> = {
     2: "#eee4da",
@@ -87,7 +86,7 @@ export function Gameboard() {
     const [bestScore, setBestScore] = useState(0);
 
     useEffect(() => {
-        setBestScore(Math.max(score, bestScore));
+        setBestScore((best) => Math.max(score, best));
     }, [score]);
 
     useEffect(() => {

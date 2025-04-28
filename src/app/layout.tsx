@@ -1,10 +1,9 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Rubik } from "next/font/google";
-import "./globals.css";
 import clsx from "clsx";
-import { MdMenu } from "react-icons/md";
-import { IoMenu, IoRefresh } from "react-icons/io5";
+import type { Metadata } from "next";
+import { Rubik } from "next/font/google";
 import Link from "next/link";
+import { IoRefresh } from "react-icons/io5";
+import "./globals.css";
 
 const rubik = Rubik({
     variable: "--font-rubik",
