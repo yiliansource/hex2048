@@ -30,7 +30,7 @@ export default function RootLayout({
                     [geistSans, geistMono].map((f) => f.variable),
                     `antialiased`,
                     `bg-[#faf8f0] text-[#9c8a7c]`,
-                    `mx-auto max-w-6xl`,
+                    `mx-auto max-w-6xl px-2`,
                 )}
             >
                 <header className="py-6">

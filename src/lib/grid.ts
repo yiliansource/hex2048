@@ -77,8 +77,6 @@ export const useGameStore = create<GameState>()(
                     const nextCell = cells[nextCellIndex];
 
                     if (!nextCell) {
-                        console.log(cell);
-
                         cell.axial = cursor;
                         moves++;
                     }

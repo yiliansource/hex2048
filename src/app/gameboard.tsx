@@ -10,6 +10,7 @@ import {
     AXIAL_UP_RIGHT,
     AxialCoord,
     axialToPixel,
+    PixelCoord,
 } from "@/lib/hex";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -26,6 +27,12 @@ const VALUE_TO_BACKGROUND_COLOR: Record<number, string> = {
     8: "#f2b179",
     16: "#f59563",
     32: "#f67c5f",
+    64: "#f65e3b",
+    128: "#edcf72",
+    256: "#edcc61",
+    512: "#edc850",
+    1024: "#edc53f",
+    2048: "#edc22e",
 };
 
 const VALUE_TO_FOREGROUND_COLOR: Record<number, string> = {
@@ -34,14 +41,26 @@ const VALUE_TO_FOREGROUND_COLOR: Record<number, string> = {
     8: "#f9f6f2",
     16: "#f9f6f2",
     32: "#f9f6f2",
+    64: "#f9f6f2",
+    128: "#f9f6f2",
+    256: "#f9f6f2",
+    512: "#f9f6f2",
+    1024: "#f9f6f2",
+    2048: "#f9f6f2",
 };
 
 const VALUE_TO_FONT_SIZE: Record<number, string> = {
-    2: "2rem",
-    4: "2rem",
-    8: "2rem",
-    16: "2rem",
-    32: "2rem",
+    2: "36px",
+    4: "36px",
+    8: "36px",
+    16: "34px",
+    32: "34px",
+    64: "34px",
+    128: "32px",
+    256: "32px",
+    512: "32px",
+    1024: "28px",
+    2048: "28px",
 };
 
 const TRACKED_KEYS = [
@@ -63,6 +82,7 @@ export function Gameboard() {
         spawnNewCell();
     }, [spawnNewCell]);
 
+    // keyboard controls
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (TRACKED_KEYS.includes(e.key as (typeof TRACKED_KEYS)[number])) {
@@ -128,8 +148,74 @@ export function Gameboard() {
         };
     });
 
+    // swipe controls
+    const [touchStart, setTouchStart] = useState<PixelCoord | null>(null);
+    useEffect(() => {
+        const attemptSwipe = (dx: number, dy: number) => {
+            if (dx ** 2 + dy ** 2 < 100) {
+                setTouchStart(null);
+                return;
+            }
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                swipe(dx > 0 ? AXIAL_UP_RIGHT : AXIAL_UP_LEFT);
+            } else {
+                swipe(dy > 0 ? AXIAL_DOWN : AXIAL_UP);
+            }
+            setTouchStart(null);
+        };
+
+        const handleTouchStart = (e: TouchEvent) => {
+            setTouchStart([e.touches[0].clientX, e.touches[0].clientY]);
+        };
+        const handleTouchEnd = (e: TouchEvent) => {
+            if (!touchStart) return;
+            const touchEnd = [
+                e.changedTouches[0].clientX,
+                e.changedTouches[0].clientY,
+            ];
+            const dx = touchEnd[0] - touchStart[0];
+            const dy = touchEnd[1] - touchStart[1];
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                swipe(dx > 0 ? AXIAL_UP_RIGHT : AXIAL_UP_LEFT);
+            } else {
+                swipe(dy > 0 ? AXIAL_DOWN : AXIAL_UP);
+            }
+            setTouchStart(null);
+        };
+
+        window.addEventListener("touchstart", handleTouchStart);
+        window.addEventListener("touchend", handleTouchEnd);
+
+        // add mouse support
+        const handleMouseDown = (e: MouseEvent) => {
+            setTouchStart([e.clientX, e.clientY]);
+        };
+        const handleMouseUp = (e: MouseEvent) => {
+            if (!touchStart) {
+                setTouchStart(null);
+                return;
+            }
+
+            const touchEnd = [e.clientX, e.clientY];
+            const dx = touchEnd[0] - touchStart[0];
+            const dy = touchEnd[1] - touchStart[1];
+        };
+        window.addEventListener("mousedown", handleMouseDown);
+        window.addEventListener("mouseup", handleMouseUp);
+
+        return () => {
+            window.removeEventListener("touchstart", handleTouchStart);
+            window.removeEventListener("touchend", handleTouchEnd);
+
+            window.removeEventListener("mousedown", handleMouseDown);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    });
+
     return (
-        <div className="relative">
+        <div className="relative scale-60 md:scale-100 -my-16 touch-none">
             <div className="absolute text-center">
                 {/* {JSON.stringify(pressedKeys)}
                 {JSON.stringify(silencedKeys)} */}
@@ -141,12 +227,12 @@ export function Gameboard() {
                     aspectRatio: `1 / ${Math.cos((30 * Math.PI) / 180)}`,
                 }}
             >
-                <div className="absolute left-1/2 top-1/2 w-0 h-0">
+                <div className="absolute left-1/2 top-1/2 w-0 h-0 select-none">
                     {GRID_COORDS.map((axial) => (
                         <HexBackground key={axial.toString()} axial={axial} />
                     ))}
 
-                    <AnimatePresence>
+                    <AnimatePresence mode={"popLayout"}>
                         {cells.map(({ id, axial, value }) => (
                             <HexTile key={id} axial={axial} value={value} />
                         ))}
@@ -185,7 +271,7 @@ function HexTile({ axial, value }: { axial: AxialCoord; value: number }) {
     const pixel = axialToPixel(axial, TILE_PADDED_SIZE / 2);
     return (
         <motion.div
-            className="absolute"
+            className="absolute z-10"
             initial={{
                 x: pixel[0],
                 y: pixel[1],
@@ -198,9 +284,11 @@ function HexTile({ axial, value }: { axial: AxialCoord; value: number }) {
             }}
             exit={{
                 scale: 0,
+                zIndex: 5,
             }}
             transition={{
-                type: "ease",
+                type: "spring",
+                duration: 0.3,
             }}
             layout
         >
