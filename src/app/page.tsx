@@ -3,7 +3,10 @@ import { Gameboard } from "./gameboard";
 export default function Home() {
     return (
         <>
-            <Gameboard />
+            <div className="my-auto">
+                <Gameboard />
+            </div>
+            <div className="h-24"></div>
         </>
     );
 }
