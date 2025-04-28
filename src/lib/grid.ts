@@ -19,6 +19,7 @@ interface CellState {
 }
 
 interface GameState {
+    score: number;
     cells: CellState[];
     maxCellId: number;
 
@@ -28,6 +29,7 @@ interface GameState {
 
 export const useGameStore = create<GameState>()(
     immer((set, get) => ({
+        score: 0,
         cells: [],
         maxCellId: 0,
 
@@ -49,6 +51,8 @@ export const useGameStore = create<GameState>()(
             });
         },
         swipe: (direction) => {
+            let score = get().score;
+
             const cells = clone(get().cells);
             cells.sort((a, b) => {
                 const pa = dotProduct(a.axial, direction);
@@ -91,12 +95,15 @@ export const useGameStore = create<GameState>()(
 
                         cell.axial = cursor;
                         cell.value *= 2;
+
+                        score += cell.value;
                     }
                 }
             }
 
             if (moves > 0) {
                 set((draft) => {
+                    draft.score = score;
                     draft.cells = cells;
                 });
 

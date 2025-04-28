@@ -10,16 +10,13 @@ import {
     AXIAL_UP_RIGHT,
     AxialCoord,
     axialToPixel,
+    directionToAxial,
     PixelCoord,
 } from "@/lib/hex";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { produce } from "immer";
-
-const TILE_SIZE = 120;
-const GAP = 10;
-const TILE_PADDED_SIZE = TILE_SIZE + GAP;
-const TILE_BACKGROUND_SIZE = TILE_PADDED_SIZE + 12;
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 const VALUE_TO_BACKGROUND_COLOR: Record<number, string> = {
     2: "#eee4da",
@@ -49,18 +46,18 @@ const VALUE_TO_FOREGROUND_COLOR: Record<number, string> = {
     2048: "#f9f6f2",
 };
 
-const VALUE_TO_FONT_SIZE: Record<number, string> = {
-    2: "36px",
-    4: "36px",
-    8: "36px",
-    16: "34px",
-    32: "34px",
-    64: "34px",
-    128: "32px",
-    256: "32px",
-    512: "32px",
-    1024: "28px",
-    2048: "28px",
+const VALUE_TO_FONT_SIZE_PX: Record<number, number> = {
+    2: 36,
+    4: 36,
+    8: 36,
+    16: 34,
+    32: 34,
+    64: 34,
+    128: 32,
+    256: 32,
+    512: 32,
+    1024: 28,
+    2048: 28,
 };
 
 const TRACKED_KEYS = [
@@ -76,7 +73,22 @@ export function Gameboard() {
     const [pressedKeys, setPressedKeys] = useState<KEYMAP>({});
     const [silencedKeys, setSilencedKeys] = useState<KEYMAP>({});
 
-    const { cells, spawnNewCell, swipe } = useGameStore();
+    const { score, cells, spawnNewCell, swipe } = useGameStore();
+
+    const isMobile = useIsMobile();
+
+    const SCALE_FACTOR = isMobile ? 0.6 : 1;
+
+    const TILE_SIZE = 120 * SCALE_FACTOR;
+    const GAP = 10 * SCALE_FACTOR;
+    const TILE_PADDED_SIZE = TILE_SIZE + GAP;
+    const TILE_BACKGROUND_SIZE = TILE_PADDED_SIZE + 12 * SCALE_FACTOR;
+
+    const [bestScore, setBestScore] = useState(0);
+
+    useEffect(() => {
+        setBestScore(Math.max(score, bestScore));
+    }, [score]);
 
     useEffect(() => {
         spawnNewCell();
@@ -149,40 +161,28 @@ export function Gameboard() {
     });
 
     // swipe controls
-    const [touchStart, setTouchStart] = useState<PixelCoord | null>(null);
+    const [swipeStart, setSwipeStart] = useState<PixelCoord | null>(null);
+    const SWIPE_THRESHOLD = 100 * SCALE_FACTOR;
     useEffect(() => {
         const attemptSwipe = (dx: number, dy: number) => {
-            if (dx ** 2 + dy ** 2 < 100) {
-                setTouchStart(null);
+            if (dx ** 2 + dy ** 2 < SWIPE_THRESHOLD ** 2) {
+                setSwipeStart(null);
                 return;
             }
 
-            if (Math.abs(dx) > Math.abs(dy)) {
-                swipe(dx > 0 ? AXIAL_UP_RIGHT : AXIAL_UP_LEFT);
-            } else {
-                swipe(dy > 0 ? AXIAL_DOWN : AXIAL_UP);
-            }
-            setTouchStart(null);
+            swipe(directionToAxial(dx, dy));
+            setSwipeStart(null);
         };
 
         const handleTouchStart = (e: TouchEvent) => {
-            setTouchStart([e.touches[0].clientX, e.touches[0].clientY]);
+            setSwipeStart([e.touches[0].clientX, e.touches[0].clientY]);
         };
         const handleTouchEnd = (e: TouchEvent) => {
-            if (!touchStart) return;
-            const touchEnd = [
-                e.changedTouches[0].clientX,
-                e.changedTouches[0].clientY,
-            ];
-            const dx = touchEnd[0] - touchStart[0];
-            const dy = touchEnd[1] - touchStart[1];
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                swipe(dx > 0 ? AXIAL_UP_RIGHT : AXIAL_UP_LEFT);
-            } else {
-                swipe(dy > 0 ? AXIAL_DOWN : AXIAL_UP);
-            }
-            setTouchStart(null);
+            if (!swipeStart) return;
+            attemptSwipe(
+                e.changedTouches[0].clientX - swipeStart[0],
+                e.changedTouches[0].clientY - swipeStart[1],
+            );
         };
 
         window.addEventListener("touchstart", handleTouchStart);
@@ -190,17 +190,11 @@ export function Gameboard() {
 
         // add mouse support
         const handleMouseDown = (e: MouseEvent) => {
-            setTouchStart([e.clientX, e.clientY]);
+            setSwipeStart([e.clientX, e.clientY]);
         };
         const handleMouseUp = (e: MouseEvent) => {
-            if (!touchStart) {
-                setTouchStart(null);
-                return;
-            }
-
-            const touchEnd = [e.clientX, e.clientY];
-            const dx = touchEnd[0] - touchStart[0];
-            const dy = touchEnd[1] - touchStart[1];
+            if (!swipeStart) return;
+            attemptSwipe(e.clientX - swipeStart[0], e.clientY - swipeStart[1]);
         };
         window.addEventListener("mousedown", handleMouseDown);
         window.addEventListener("mouseup", handleMouseUp);
@@ -215,99 +209,122 @@ export function Gameboard() {
     });
 
     return (
-        <div className="relative scale-60 md:scale-100 -my-16 touch-none">
-            <div className="absolute text-center">
-                {/* {JSON.stringify(pressedKeys)}
-                {JSON.stringify(silencedKeys)} */}
+        <>
+            <div className="absolute top-0 left-0 right-0 flex flex-row gap-2 w-full">
+                <div className="grow py-1.5 rounded-xl bg-[#eae7d9]">
+                    <div className="text-center">
+                        <p className="mb-1 font-medium text-xs leading-none">
+                            SCORE
+                        </p>
+                        <p className="font-bold text-lg leading-none">
+                            {score}
+                        </p>
+                    </div>
+                </div>
+                <div className="grow py-1.5 rounded-xl ring-2 ring-[#eae7d9]">
+                    <div className="text-center">
+                        <p className="mb-1 font-medium text-xs leading-none">
+                            BEST
+                        </p>
+                        <p className="font-bold text-lg leading-none">
+                            {bestScore}
+                        </p>
+                    </div>
+                </div>
             </div>
             <div
-                className="relative mx-auto my-8"
+                className="relative mx-auto"
                 style={{
-                    width: `${(GRID_RADIUS * 2 - 1) * TILE_PADDED_SIZE}px`,
-                    aspectRatio: `1 / ${Math.cos((30 * Math.PI) / 180)}`,
+                    width: `${(GRID_RADIUS * 2 - 1) * TILE_BACKGROUND_SIZE * (3 / 4)}px`,
+                    height: `${((GRID_RADIUS * 2 - 1) * TILE_BACKGROUND_SIZE * Math.sqrt(3)) / 2}px`,
                 }}
             >
-                <div className="absolute left-1/2 top-1/2 w-0 h-0 select-none">
-                    {GRID_COORDS.map((axial) => (
-                        <HexBackground key={axial.toString()} axial={axial} />
-                    ))}
+                <div className="absolute left-1/2 top-1/2 select-none">
+                    {GRID_COORDS.map((axial) => {
+                        const pixel = axialToPixel(axial, TILE_PADDED_SIZE / 2);
+                        return (
+                            <div
+                                className="absolute"
+                                key={axial.toString()}
+                                style={{
+                                    left: `${pixel[0]}px`,
+                                    top: `${pixel[1]}px`,
+                                }}
+                            >
+                                <div
+                                    className="absolute hex text-[#9c8978] -translate-x-1/2 -translate-y-1/2"
+                                    style={{
+                                        width: `${TILE_BACKGROUND_SIZE}px`,
+                                    }}
+                                ></div>
+                                <div
+                                    className="absolute hex text-[#bdac97] -translate-x-1/2 -translate-y-1/2"
+                                    style={{
+                                        width: `${TILE_SIZE}px`,
+                                    }}
+                                ></div>
+                            </div>
+                        );
+                    })}
 
                     <AnimatePresence mode={"popLayout"}>
-                        {cells.map(({ id, axial, value }) => (
-                            <HexTile key={id} axial={axial} value={value} />
-                        ))}
+                        {cells.map(({ id, axial, value }) => {
+                            const pixel = axialToPixel(
+                                axial,
+                                TILE_PADDED_SIZE / 2,
+                            );
+                            return (
+                                <motion.div
+                                    key={id}
+                                    className="absolute z-10"
+                                    initial={{
+                                        x: pixel[0],
+                                        y: pixel[1],
+                                        scale: 0,
+                                    }}
+                                    animate={{
+                                        x: pixel[0],
+                                        y: pixel[1],
+                                        scale: 1,
+                                    }}
+                                    exit={{
+                                        scale: 0,
+                                        zIndex: 5,
+                                    }}
+                                    transition={{
+                                        type: "spring",
+                                        duration: 0.3,
+                                    }}
+                                    layout
+                                >
+                                    <div
+                                        className="absolute hex -translate-x-1/2 -translate-y-1/2"
+                                        style={{
+                                            width: `${TILE_SIZE}px`,
+                                            color: VALUE_TO_BACKGROUND_COLOR[
+                                                value
+                                            ],
+                                        }}
+                                    ></div>
+                                    <span
+                                        className="absolute font-bold -translate-x-1/2 -translate-y-1/2"
+                                        style={{
+                                            color: VALUE_TO_FOREGROUND_COLOR[
+                                                value
+                                            ],
+                                            fontSize:
+                                                VALUE_TO_FONT_SIZE_PX[value] *
+                                                (isMobile ? 0.7 : 1),
+                                        }}
+                                    >
+                                        {value}
+                                    </span>
+                                </motion.div>
+                            );
+                        })}
                     </AnimatePresence>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function HexBackground({ axial }: { axial: AxialCoord }) {
-    const pixel = axialToPixel(axial, TILE_PADDED_SIZE / 2);
-    return (
-        <div className="absolute">
-            <div
-                className="absolute hex text-[#9c8978] -translate-x-1/2 -translate-y-1/2"
-                style={{
-                    left: `${pixel[0]}px`,
-                    top: `${pixel[1]}px`,
-                    width: `${TILE_BACKGROUND_SIZE}px`,
-                }}
-            ></div>
-            <div
-                className="absolute hex text-[#bdac97] -translate-x-1/2 -translate-y-1/2"
-                style={{
-                    left: `${pixel[0]}px`,
-                    top: `${pixel[1]}px`,
-                    width: `${TILE_SIZE}px`,
-                }}
-            ></div>
-        </div>
-    );
-}
-
-function HexTile({ axial, value }: { axial: AxialCoord; value: number }) {
-    const pixel = axialToPixel(axial, TILE_PADDED_SIZE / 2);
-    return (
-        <motion.div
-            className="absolute z-10"
-            initial={{
-                x: pixel[0],
-                y: pixel[1],
-                scale: 0,
-            }}
-            animate={{
-                x: pixel[0],
-                y: pixel[1],
-                scale: 1,
-            }}
-            exit={{
-                scale: 0,
-                zIndex: 5,
-            }}
-            transition={{
-                type: "spring",
-                duration: 0.3,
-            }}
-            layout
-        >
-            <div
-                className="absolute hex -translate-x-1/2 -translate-y-1/2"
-                style={{
-                    width: `${TILE_SIZE}px`,
-                    color: VALUE_TO_BACKGROUND_COLOR[value],
-                }}
-            ></div>
-            <span
-                className="absolute font-bold -translate-x-1/2 -translate-y-1/2"
-                style={{
-                    color: VALUE_TO_FOREGROUND_COLOR[value],
-                    fontSize: VALUE_TO_FONT_SIZE[value],
-                }}
-            >
-                {value}
-            </span>
-        </motion.div>
+        </>
     );
 }

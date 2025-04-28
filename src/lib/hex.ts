@@ -38,3 +38,18 @@ export function pixelToAxialRounded(
     const [q, r] = pixelToAxial(pixel, size);
     return [Math.round(q), Math.round(r)];
 }
+
+export function directionToAxial(dx: number, dy: number): AxialCoord {
+    const thetaRad = Math.atan2(-dy, dx);
+    const thetaDeg = (thetaRad * 180) / Math.PI;
+
+    if (thetaDeg >= 0 && thetaDeg <= 60) return AXIAL_UP_RIGHT;
+    if (thetaDeg >= 60 && thetaDeg <= 120) return AXIAL_UP;
+    if (thetaDeg >= 120 && thetaDeg <= 180) return AXIAL_UP_LEFT;
+
+    if (thetaDeg <= 0 && thetaDeg >= -60) return AXIAL_DOWN_RIGHT;
+    if (thetaDeg <= -60 && thetaDeg >= -120) return AXIAL_DOWN;
+    if (thetaDeg <= -120 && thetaDeg >= -180) return AXIAL_DOWN_LEFT;
+
+    return [0, 0];
+}
