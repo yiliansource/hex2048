@@ -30,7 +30,6 @@ const VALUE_TO_BACKGROUND_COLOR: Record<number, string> = {
     1024: "#edc53f",
     2048: "#edc22e",
 };
-
 const VALUE_TO_FOREGROUND_COLOR: Record<number, string> = {
     2: "#776e65",
     4: "#776e65",
@@ -44,7 +43,6 @@ const VALUE_TO_FOREGROUND_COLOR: Record<number, string> = {
     1024: "#f9f6f2",
     2048: "#f9f6f2",
 };
-
 const VALUE_TO_FONT_SIZE_PX: Record<number, number> = {
     2: 36,
     4: 36,
@@ -59,15 +57,14 @@ const VALUE_TO_FONT_SIZE_PX: Record<number, number> = {
     2048: 28,
 };
 
+const BEST_SCORE_KEY = "BEST_SCORE";
+
 function getNextHigherKeyValue<T>(key: number, lookup: Record<number, T>) {
     const keys = Object.keys(lookup)
         .map(Number)
         .sort((a, b) => b - a);
-    console.log(key, keys);
     for (const k of keys) {
-        console.log(key, k);
         if (key >= k) {
-            console.log(k);
             return lookup[k];
         }
     }
@@ -99,6 +96,13 @@ export function Gameboard() {
     const TILE_BACKGROUND_SIZE = TILE_PADDED_SIZE + 12 * SCALE_FACTOR;
 
     const [bestScore, setBestScore] = useState(0);
+    useEffect(() => {
+        const saved = Number(localStorage.getItem(BEST_SCORE_KEY));
+        if (!Number.isNaN(saved)) setBestScore(saved);
+    }, []);
+    useEffect(() => {
+        localStorage.setItem(BEST_SCORE_KEY, bestScore.toString());
+    }, [bestScore]);
 
     useEffect(() => {
         setBestScore((best) => Math.max(score, best));
