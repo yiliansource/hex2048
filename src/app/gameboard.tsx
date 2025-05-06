@@ -59,6 +59,21 @@ const VALUE_TO_FONT_SIZE_PX: Record<number, number> = {
     2048: 28,
 };
 
+function getNextHigherKeyValue<T>(key: number, lookup: Record<number, T>) {
+    const keys = Object.keys(lookup)
+        .map(Number)
+        .sort((a, b) => b - a);
+    console.log(key, keys);
+    for (const k of keys) {
+        console.log(key, k);
+        if (key >= k) {
+            console.log(k);
+            return lookup[k];
+        }
+    }
+    return lookup[0];
+}
+
 const TRACKED_KEYS = [
     "ArrowLeft",
     "ArrowRight",
@@ -300,20 +315,24 @@ export function Gameboard() {
                                         className="absolute hex -translate-x-1/2 -translate-y-1/2"
                                         style={{
                                             width: `${TILE_SIZE}px`,
-                                            color: VALUE_TO_BACKGROUND_COLOR[
-                                                value
-                                            ],
+                                            color: getNextHigherKeyValue(
+                                                value,
+                                                VALUE_TO_BACKGROUND_COLOR,
+                                            ),
                                         }}
                                     ></div>
                                     <span
                                         className="absolute font-bold -translate-x-1/2 -translate-y-1/2"
                                         style={{
-                                            color: VALUE_TO_FOREGROUND_COLOR[
-                                                value
-                                            ],
+                                            color: getNextHigherKeyValue(
+                                                value,
+                                                VALUE_TO_FOREGROUND_COLOR,
+                                            ),
                                             fontSize:
-                                                VALUE_TO_FONT_SIZE_PX[value] *
-                                                (isMobile ? 0.7 : 1),
+                                                getNextHigherKeyValue(
+                                                    value,
+                                                    VALUE_TO_FONT_SIZE_PX,
+                                                ) * (isMobile ? 0.7 : 1),
                                         }}
                                     >
                                         {value}
