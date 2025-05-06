@@ -22,34 +22,32 @@ interface GameState {
     score: number;
     cells: CellState[];
     maxCellId: number;
-
-    spawnNewCell(): void;
+}
+interface GameActions {
     swipe(direction: AxialCoord): void;
+    restart(): void;
 }
 
-export const useGameStore = create<GameState>()(
-    immer((set, get) => ({
+function createInitialState(): GameState {
+    return {
         score: 0,
-        cells: [],
+        cells: [
+            {
+                id: 0,
+                value: 2,
+                axial: GRID_COORDS[
+                    Math.floor(Math.random() * GRID_COORDS.length)
+                ],
+            },
+        ],
         maxCellId: 0,
+    };
+}
 
-        spawnNewCell: () => {
-            const cells = get().cells;
-            const existingPositions = cells.map((c) => c.axial.toString());
-            const possiblePositions = GRID_COORDS.filter(
-                (c) => !existingPositions.includes(c.toString()),
-            );
+export const useGameStore = create<GameState & GameActions>()(
+    immer((set, get) => ({
+        ...createInitialState(),
 
-            const axial =
-                possiblePositions[
-                    Math.floor(Math.random() * possiblePositions.length)
-                ];
-
-            set((draft) => {
-                draft.cells.push({ id: draft.maxCellId, axial, value: 2 });
-                draft.maxCellId++;
-            });
-        },
         swipe: (direction) => {
             let score = get().score;
 
@@ -102,13 +100,29 @@ export const useGameStore = create<GameState>()(
             }
 
             if (moves > 0) {
-                set((draft) => {
-                    draft.score = score;
-                    draft.cells = cells;
-                });
+                const existingPositions = cells.map((c) => c.axial.toString());
+                const possiblePositions = GRID_COORDS.filter(
+                    (c) => !existingPositions.includes(c.toString()),
+                );
 
-                get().spawnNewCell();
+                const axial =
+                    possiblePositions[
+                        Math.floor(Math.random() * possiblePositions.length)
+                    ];
+
+                set((draft) => {
+                    draft.cells = cells;
+                    draft.cells.push({
+                        id: ++draft.maxCellId,
+                        axial,
+                        value: 2,
+                    });
+                    draft.score = score;
+                });
             }
+        },
+        restart: () => {
+            set(createInitialState());
         },
     })),
 );

@@ -2,7 +2,6 @@ import clsx from "clsx";
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
 import Link from "next/link";
-import { IoRefresh } from "react-icons/io5";
 import "./globals.css";
 
 const rubik = Rubik({
@@ -35,13 +34,10 @@ export default function RootLayout({
                     {/* <button className="text-xl md:text-2xl">
                         <IoMenu />
                     </button> */}
-                    <h1 className="leading-0 text-[26px] md:text-4xl font-bold text-[#756452]">
+                    <h1 className="leading-3 text-[26px] md:text-4xl font-bold text-[#756452]">
                         <span>hex</span>
                         <span>2048</span>
                     </h1>
-                    <button className="ml-auto text-2xl">
-                        <IoRefresh />
-                    </button>
                 </header>
                 <main className="relative flex grow flex-col justify-center">
                     {children}

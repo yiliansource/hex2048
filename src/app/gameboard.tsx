@@ -16,6 +16,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { produce } from "immer";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { IoRefresh } from "react-icons/io5";
 
 const VALUE_TO_BACKGROUND_COLOR: Record<number, string> = {
     2: "#eee4da",
@@ -84,11 +85,12 @@ export function Gameboard() {
     const [pressedKeys, setPressedKeys] = useState<KEYMAP>({});
     const [silencedKeys, setSilencedKeys] = useState<KEYMAP>({});
 
-    const { score, cells, spawnNewCell, swipe } = useGameStore();
+    const { score, cells, swipe, restart } = useGameStore();
 
-    const isMobile = useIsMobile();
+    const isMobile = useIsMobile(768);
+    const isTablet = useIsMobile(1024) && !isMobile;
 
-    const SCALE_FACTOR = isMobile ? 0.6 : 1;
+    const SCALE_FACTOR = isMobile ? 0.6 : isTablet ? 0.8 : 1;
 
     const TILE_SIZE = 120 * SCALE_FACTOR;
     const GAP = 10 * SCALE_FACTOR;
@@ -101,16 +103,14 @@ export function Gameboard() {
         if (!Number.isNaN(saved)) setBestScore(saved);
     }, []);
     useEffect(() => {
-        localStorage.setItem(BEST_SCORE_KEY, bestScore.toString());
+        if (Number(localStorage.getItem(BEST_SCORE_KEY)) < bestScore) {
+            localStorage.setItem(BEST_SCORE_KEY, bestScore.toString());
+        }
     }, [bestScore]);
 
     useEffect(() => {
         setBestScore((best) => Math.max(score, best));
     }, [score]);
-
-    useEffect(() => {
-        spawnNewCell();
-    }, [spawnNewCell]);
 
     // keyboard controls
     useEffect(() => {
@@ -250,6 +250,17 @@ export function Gameboard() {
                     </div>
                 </div>
             </div>
+            <div className="absolute -top-9.5 md:-top-13 right-0">
+                <motion.button
+                    className="ml-auto text-xl md:text-2xl cursor-pointer p-2"
+                    onClick={() => restart()}
+                    whileHover={{
+                        rotateZ: 180,
+                    }}
+                >
+                    <IoRefresh />
+                </motion.button>
+            </div>
             <div
                 className="relative mx-auto"
                 style={{
@@ -294,7 +305,8 @@ export function Gameboard() {
                             return (
                                 <motion.div
                                     key={id}
-                                    className="absolute z-10"
+                                    className="absolute"
+                                    style={{ zIndex: 10 + value }}
                                     initial={{
                                         x: pixel[0],
                                         y: pixel[1],
